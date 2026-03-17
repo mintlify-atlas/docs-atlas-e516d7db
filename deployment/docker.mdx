@@ -1,0 +1,189 @@
+---
+title: "Docker deployment"
+description: "Run TaskForge API locally or in any container environment using Docker and Docker Compose."
+keywords: ["Docker", "Docker Compose", "container", "deployment", "Dockerfile"]
+---
+
+TaskForge API ships with a `Dockerfile` and `docker-compose.yml` that let you run the API in a container with a single command.
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) 20.10 or later
+- [Docker Compose](https://docs.docker.com/compose/install/) v2 or later
+
+## Deploy with Docker Compose
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/YamiDarknezz/task-forge-api.git
+    cd task-forge-api
+    ```
+  </Step>
+
+  <Step title="Create your .env file">
+    Copy the example file and fill in your values:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    At minimum, set `SECRET_KEY` and `JWT_SECRET_KEY` to unique random strings. See [Environment variables](/configuration/environment-variables) for the full reference.
+  </Step>
+
+  <Step title="Build and start the container">
+    ```bash
+    docker-compose up --build
+    ```
+
+    Docker Compose builds the image and starts the `taskforge-api` container. The first build takes a few minutes because it installs the ODBC driver for Azure SQL.
+  </Step>
+
+  <Step title="Verify the API is running">
+    Open a second terminal and check the health endpoint:
+
+    ```bash
+    curl http://localhost:5000/api/health
+    ```
+
+    You should receive a `200 OK` response. The API is ready when the health check passes.
+  </Step>
+</Steps>
+
+The API is accessible at `http://localhost:5000`. The interactive Swagger UI is available at `http://localhost:5000/api/docs`.
+
+## Environment variables in Docker
+
+Docker Compose reads your `.env` file automatically and passes the variables to the container. You can also override individual values inline:
+
+```bash
+SECRET_KEY=my-key docker-compose up
+```
+
+Or set them directly in `docker-compose.yml` for values you want to hard-code in your environment.
+
+## Dockerfile
+
+The `Dockerfile` builds a production-ready image based on Python 3.11 slim, with the Microsoft ODBC Driver 17 for SQL Server installed:
+
+```dockerfile
+# Use Python 3.11 slim image
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=run.py
+
+# Install system dependencies for pyodbc and SQL Server
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    unixodbc \
+    unixodbc-dev \
+    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create logs directory
+RUN mkdir -p logs
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:5000/api/health || exit 1
+
+# Run with gunicorn for production
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "run:app"]
+```
+
+The image starts Gunicorn with 4 workers and a 120-second request timeout.
+
+## docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: taskforge-api
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=run.py
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-key-change-in-production}
+      - AZURE_SQL_SERVER=${AZURE_SQL_SERVER}
+      - AZURE_SQL_DATABASE=${AZURE_SQL_DATABASE:-taskforge_db}
+      - AZURE_SQL_USER=${AZURE_SQL_USER}
+      - AZURE_SQL_PASSWORD=${AZURE_SQL_PASSWORD}
+      - AZURE_SQL_PORT=${AZURE_SQL_PORT:-1433}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: taskforge-network
+```
+
+## Health check
+
+Both the Dockerfile and `docker-compose.yml` configure a health check against `GET /api/health`. Docker marks the container as unhealthy if the endpoint does not respond within 10 seconds, and retries up to 3 times before giving up.
+
+You can check container health at any time:
+
+```bash
+docker inspect taskforge-api --format='{{.State.Health.Status}}'
+```
+
+## Logs
+
+Application logs are written to `./logs` on your host machine via the volume mount `./logs:/app/logs`. Access them directly:
+
+```bash
+ls logs/
+```
+
+To stream logs from the running container:
+
+```bash
+docker-compose logs -f api
+```
+
+## Stop and clean up
+
+```bash
+# Stop the container
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+```

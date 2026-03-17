@@ -1,0 +1,105 @@
+---
+title: 'Task statistics'
+description: 'Get a summary of task counts grouped by status and priority for the authenticated user.'
+---
+
+`GET /api/tasks/statistics`
+
+Returns aggregated statistics for all tasks owned by the authenticated user, including counts by status, by priority, and overdue tasks.
+
+<Info>**Authentication:** Bearer access token required.</Info>
+
+## Response fields
+
+<ResponseField name="success" type="boolean">
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Task statistics for the current user.
+  <Expandable title="properties">
+    <ResponseField name="total_tasks" type="integer">
+      Total number of tasks owned by the user.
+    </ResponseField>
+    <ResponseField name="completed_tasks" type="integer">
+      Number of tasks with status `completed`.
+    </ResponseField>
+    <ResponseField name="pending_tasks" type="integer">
+      Number of tasks with status `pending`.
+    </ResponseField>
+    <ResponseField name="in_progress_tasks" type="integer">
+      Number of tasks with status `in_progress`.
+    </ResponseField>
+    <ResponseField name="cancelled_tasks" type="integer">
+      Number of tasks with status `cancelled`.
+    </ResponseField>
+    <ResponseField name="overdue_tasks" type="integer">
+      Number of tasks that are past their due date and not completed.
+    </ResponseField>
+    <ResponseField name="by_priority" type="object">
+      Task counts grouped by priority level.
+      <Expandable title="properties">
+        <ResponseField name="low" type="integer">
+          Number of tasks with priority `low`.
+        </ResponseField>
+        <ResponseField name="medium" type="integer">
+          Number of tasks with priority `medium`.
+        </ResponseField>
+        <ResponseField name="high" type="integer">
+          Number of tasks with priority `high`.
+        </ResponseField>
+        <ResponseField name="urgent" type="integer">
+          Number of tasks with priority `urgent`.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request GET \
+  --url https://api.taskforge.example.com/api/tasks/statistics \
+  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "data": {
+    "total_tasks": 25,
+    "completed_tasks": 10,
+    "pending_tasks": 8,
+    "in_progress_tasks": 5,
+    "cancelled_tasks": 2,
+    "overdue_tasks": 3,
+    "by_priority": {
+      "low": 4,
+      "medium": 11,
+      "high": 7,
+      "urgent": 3
+    }
+  }
+}
+```
+
+```json 401
+{
+  "success": false,
+  "error": "Token de acceso invalido o expirado"
+}
+```
+
+```json 404
+{
+  "success": false,
+  "error": "Usuario no encontrado"
+}
+```
+
+</ResponseExample>

@@ -1,0 +1,78 @@
+---
+title: 'Health check'
+description: 'Check the operational status of the TaskForge API and its database connection.'
+---
+
+`GET /api/health`
+
+Returns the current status of the API, including the application version and database connectivity. Use this endpoint to verify the API is reachable and fully operational before making other requests.
+
+<Info>
+  No authentication required. This endpoint is publicly accessible.
+</Info>
+
+## Response fields
+
+<ResponseField name="success" type="boolean" required>
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  Health status details.
+  <Expandable title="properties" defaultOpen={true}>
+    <ResponseField name="status" type="string" required>
+      Overall API status. `healthy` when the database is connected; `degraded` when the database connection has failed.
+    </ResponseField>
+    <ResponseField name="timestamp" type="string" required>
+      ISO 8601 UTC timestamp of when the health check was performed.
+    </ResponseField>
+    <ResponseField name="app_name" type="string" required>
+      Name of the application (e.g., `TaskForge API`).
+    </ResponseField>
+    <ResponseField name="version" type="string" required>
+      Current version of the API (e.g., `1.0.0`).
+    </ResponseField>
+    <ResponseField name="database" type="string" required>
+      Database connection status. `connected` or `disconnected`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request GET \
+  --url 'https://api.taskforge.com/api/health'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 (healthy)
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "timestamp": "2024-01-15T10:30:00",
+    "app_name": "TaskForge API",
+    "version": "1.0.0",
+    "database": "connected"
+  }
+}
+```
+
+```json 200 (degraded)
+{
+  "success": true,
+  "data": {
+    "status": "degraded",
+    "timestamp": "2024-01-15T10:30:00",
+    "app_name": "TaskForge API",
+    "version": "1.0.0",
+    "database": "disconnected"
+  }
+}
+```
+
+</ResponseExample>

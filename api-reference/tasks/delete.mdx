@@ -1,0 +1,63 @@
+---
+title: 'Delete task'
+description: 'Permanently delete a task.'
+---
+
+`DELETE /api/tasks/{task_id}`
+
+Permanently deletes a task. Regular users can only delete their own tasks. Admin users can delete any task.
+
+<Info>**Authentication:** Bearer access token required.</Info>
+
+<Warning>This action is permanent and cannot be undone.</Warning>
+
+## Path parameters
+
+<ParamField path="task_id" type="integer" required>
+  The ID of the task to delete.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean">
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable result message.
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request DELETE \
+  --url https://api.taskforge.example.com/api/tasks/1 \
+  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "message": "Tarea eliminada con exito"
+}
+```
+
+```json 403
+{
+  "success": false,
+  "error": "No tienes permiso para eliminar esta tarea"
+}
+```
+
+```json 404
+{
+  "success": false,
+  "error": "Tarea no encontrada"
+}
+```
+
+</ResponseExample>

@@ -1,0 +1,310 @@
+---
+title: "Managing tasks"
+description: "Create, update, list, and delete tasks. Understand task fields, statuses, and ownership rules."
+keywords: ["tasks", "create task", "update task", "delete task", "task status", "task priority"]
+---
+
+Tasks are the core resource in TaskForge. Each task belongs to a user and tracks work with a title, description, status, priority, due date, and optional tags.
+
+## Task model
+
+A task has the following fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | integer | Auto-generated unique identifier |
+| `title` | string | Required. Up to 200 characters |
+| `description` | string | Optional. Up to 5,000 characters |
+| `status` | enum | Current state of the task |
+| `priority` | enum | Urgency level |
+| `due_date` | datetime | Optional ISO 8601 datetime |
+| `completed_at` | datetime | Set automatically when status changes to `completed` |
+| `is_overdue` | boolean | `true` if `due_date` has passed and task is not completed |
+| `tags` | array | List of tag objects assigned to the task |
+| `user_id` | integer | ID of the owning user |
+| `created_at` | datetime | ISO 8601 creation timestamp |
+| `updated_at` | datetime | ISO 8601 last-updated timestamp |
+
+### Status values
+
+| Value | Meaning |
+|---|---|
+| `pending` | Not yet started (default) |
+| `in_progress` | Currently being worked on |
+| `completed` | Finished |
+| `cancelled` | Abandoned |
+
+### Priority values
+
+| Value | Meaning |
+|---|---|
+| `low` | Low urgency |
+| `medium` | Normal urgency (default) |
+| `high` | High urgency |
+| `urgent` | Must be handled immediately |
+
+## Ownership and access
+
+<Note>
+Users can only view and modify their own tasks. Admins can view and modify tasks belonging to any user. Attempting to access another user's task as a non-admin returns `403 Forbidden`.
+</Note>
+
+## Create a task
+
+`POST /api/tasks`
+
+Only `title` is required. All other fields are optional.
+
+<CodeGroup>
+```bash Request
+curl -X POST https://api.example.com/api/tasks \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Write API documentation",
+    "description": "Cover all endpoints with examples and response schemas.",
+    "status": "pending",
+    "priority": "high",
+    "due_date": "2026-04-30T17:00:00",
+    "tags": [1, 3]
+  }'
+```
+
+```json Response (201)
+{
+  "success": true,
+  "message": "Tarea creada con exito",
+  "data": {
+    "id": 42,
+    "title": "Write API documentation",
+    "description": "Cover all endpoints with examples and response schemas.",
+    "status": "pending",
+    "priority": "high",
+    "due_date": "2026-04-30T17:00:00",
+    "completed_at": null,
+    "is_overdue": false,
+    "is_completed": false,
+    "tags": [
+      { "id": 1, "name": "Work", "color": "#4A90D9", "description": null, "task_count": 12 },
+      { "id": 3, "name": "Docs", "color": "#27AE60", "description": "Documentation tasks", "task_count": 5 }
+    ],
+    "user_id": 7,
+    "created_at": "2026-03-17T09:00:00",
+    "updated_at": "2026-03-17T09:00:00"
+  }
+}
+```
+</CodeGroup>
+
+<Note>
+Creating tasks is rate-limited to 50 requests per hour per user.
+</Note>
+
+## List tasks
+
+`GET /api/tasks`
+
+Returns a paginated list of tasks. Non-admin users only see their own tasks. Admins see all tasks by default, and can filter by `user_id`.
+
+<CodeGroup>
+```bash Basic list
+curl https://api.example.com/api/tasks \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```bash With filters
+curl "https://api.example.com/api/tasks?status=in_progress&priority=high&page=1&per_page=20&sort_by=due_date&sort_order=asc" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```json Response (200)
+{
+  "success": true,
+  "data": {
+    "tasks": [
+      {
+        "id": 42,
+        "title": "Write API documentation",
+        "status": "in_progress",
+        "priority": "high",
+        "due_date": "2026-04-30T17:00:00",
+        "is_overdue": false,
+        "tags": [],
+        "user_id": 7,
+        "created_at": "2026-03-17T09:00:00",
+        "updated_at": "2026-03-17T10:15:00"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "per_page": 20,
+      "total": 1,
+      "total_pages": 1,
+      "has_next": false,
+      "has_prev": false
+    }
+  }
+}
+```
+</CodeGroup>
+
+For the full list of supported query parameters, see [Filtering and pagination](/guides/filtering-and-pagination).
+
+## Get a single task
+
+`GET /api/tasks/{task_id}`
+
+```bash
+curl https://api.example.com/api/tasks/42 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+## Update a task
+
+`PUT /api/tasks/{task_id}`
+
+Send only the fields you want to change. Omitted fields are left unchanged. To remove all tags, pass an empty array: `"tags": []`.
+
+<CodeGroup>
+```bash Request
+curl -X PUT https://api.example.com/api/tasks/42 \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "in_progress",
+    "priority": "urgent",
+    "due_date": "2026-04-15T12:00:00"
+  }'
+```
+
+```json Response (200)
+{
+  "success": true,
+  "message": "Tarea actualizada con exito",
+  "data": {
+    "id": 42,
+    "title": "Write API documentation",
+    "status": "in_progress",
+    "priority": "urgent",
+    "due_date": "2026-04-15T12:00:00",
+    "completed_at": null,
+    "is_overdue": false,
+    "is_completed": false,
+    "tags": [],
+    "user_id": 7,
+    "created_at": "2026-03-17T09:00:00",
+    "updated_at": "2026-03-17T11:00:00"
+  }
+}
+```
+</CodeGroup>
+
+<Tip>
+Setting `status` to `completed` automatically populates `completed_at`. Setting it back to any other status clears `completed_at`.
+</Tip>
+
+## Mark a task complete
+
+`POST /api/tasks/{task_id}/complete`
+
+A convenience endpoint that sets `status` to `completed` and records `completed_at` in one step.
+
+<CodeGroup>
+```bash Request
+curl -X POST https://api.example.com/api/tasks/42/complete \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```json Response (200)
+{
+  "success": true,
+  "message": "Tarea marcada como completada",
+  "data": {
+    "id": 42,
+    "title": "Write API documentation",
+    "status": "completed",
+    "priority": "urgent",
+    "due_date": "2026-04-15T12:00:00",
+    "completed_at": "2026-03-17T14:22:10",
+    "is_overdue": false,
+    "is_completed": true,
+    "tags": [],
+    "user_id": 7,
+    "created_at": "2026-03-17T09:00:00",
+    "updated_at": "2026-03-17T14:22:10"
+  }
+}
+```
+</CodeGroup>
+
+## Delete a task
+
+`DELETE /api/tasks/{task_id}`
+
+<Warning>
+Deleting a task is permanent. The task and all its tag associations are removed.
+</Warning>
+
+<CodeGroup>
+```bash Request
+curl -X DELETE https://api.example.com/api/tasks/42 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```json Response (200)
+{
+  "success": true,
+  "message": "Tarea eliminada con exito"
+}
+```
+</CodeGroup>
+
+## Get task statistics
+
+`GET /api/tasks/statistics`
+
+Returns counts of your tasks grouped by status and priority. Admins receive statistics for their own tasks only — use `GET /api/tasks` with filters for cross-user reporting.
+
+<CodeGroup>
+```bash Request
+curl https://api.example.com/api/tasks/statistics \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```json Response (200)
+{
+  "success": true,
+  "data": {
+    "total_tasks": 24,
+    "completed_tasks": 10,
+    "pending_tasks": 8,
+    "in_progress_tasks": 4,
+    "cancelled_tasks": 2,
+    "overdue_tasks": 3,
+    "by_priority": {
+      "low": 5,
+      "medium": 9,
+      "high": 7,
+      "urgent": 3
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Typical workflow
+
+<Steps>
+  <Step title="Create a task">
+    Send `POST /api/tasks` with at minimum a `title`. Assign tags and a due date if needed.
+  </Step>
+  <Step title="Start work">
+    Update the task with `PUT /api/tasks/{task_id}` and set `status` to `in_progress`.
+  </Step>
+  <Step title="Complete the task">
+    Call `POST /api/tasks/{task_id}/complete` to mark it done and record the completion time.
+  </Step>
+  <Step title="Review statistics">
+    Use `GET /api/tasks/statistics` to track your progress across all tasks.
+  </Step>
+</Steps>

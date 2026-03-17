@@ -1,0 +1,67 @@
+---
+title: 'Delete user'
+description: 'Permanently delete a user account by user ID.'
+---
+
+`DELETE /api/users/{user_id}`
+
+Permanently deletes a user account and all associated data, including tasks and refresh tokens.
+
+<Note>
+  **Admin only.** This endpoint requires the `admin` role.
+</Note>
+
+<Warning>
+  This action is irreversible. Admin accounts cannot be deleted. Deactivate them instead using the [deactivate user](/api-reference/users/deactivate) endpoint.
+</Warning>
+
+## Path parameters
+
+<ParamField path="user_id" type="integer" required>
+  The unique identifier of the user to delete.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean" required>
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Confirmation message.
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request DELETE \
+  --url 'https://api.taskforge.com/api/users/1' \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "message": "Usuario eliminado con exito"
+}
+```
+
+```json 403
+{
+  "success": false,
+  "error": "No se pueden eliminar usuarios administradores"
+}
+```
+
+```json 404
+{
+  "success": false,
+  "error": "Usuario no encontrado"
+}
+```
+
+</ResponseExample>

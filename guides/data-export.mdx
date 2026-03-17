@@ -1,0 +1,147 @@
+---
+title: "Exporting tasks"
+description: "Download your tasks as a CSV file or JSON document using the export endpoint."
+keywords: ["export", "csv", "json", "download tasks", "bulk export"]
+---
+
+The export endpoint lets you download your tasks in bulk. Use it to back up data, import into a spreadsheet, or feed into external tools.
+
+## Endpoint
+
+`GET /api/tasks/export`
+
+The export endpoint applies the same ownership rules as `GET /api/tasks`: non-admin users export only their own tasks, and admins export all tasks (subject to any filters you apply).
+
+<Note>
+The export retrieves up to 10,000 tasks in a single request. Pagination parameters have no effect on export — all matching tasks are included.
+</Note>
+
+## Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `format` | string | `csv` | Export format: `csv` or `json` |
+| `status` | string | — | Filter by status: `pending`, `in_progress`, `completed`, or `cancelled` |
+| `priority` | string | — | Filter by priority: `low`, `medium`, `high`, or `urgent` |
+| `tag_id` | integer | — | Filter to tasks that have this tag ID |
+| `overdue` | boolean | — | Set to `true` to include only overdue tasks |
+
+## Exported fields
+
+Each exported task record includes the following fields:
+
+| Field | Description |
+|---|---|
+| `id` | Task ID |
+| `title` | Task title |
+| `description` | Task description |
+| `status` | Task status |
+| `priority` | Priority level |
+| `due_date` | Due date (ISO 8601) |
+| `completed_at` | Completion timestamp (ISO 8601) |
+| `is_overdue` | Whether the task is overdue |
+| `is_completed` | Whether the task is completed |
+| `created_at` | Creation timestamp (ISO 8601) |
+| `updated_at` | Last-updated timestamp (ISO 8601) |
+| `user_id` | ID of the owning user |
+| `user_username` | Username of the owning user |
+| `user_email` | Email of the owning user |
+| `tags` | Comma-separated list of tag names (CSV) or array of tag objects (JSON) |
+
+## Export as CSV
+
+CSV is the default format. The response triggers a file download with the filename `tasks.csv`.
+
+<CodeGroup>
+```bash All tasks
+curl https://api.example.com/api/tasks/export \
+  -H "Authorization: Bearer <access_token>" \
+  -o tasks.csv
+```
+
+```bash Completed tasks only
+curl "https://api.example.com/api/tasks/export?status=completed" \
+  -H "Authorization: Bearer <access_token>" \
+  -o completed_tasks.csv
+```
+
+```bash Overdue urgent tasks
+curl "https://api.example.com/api/tasks/export?priority=urgent&overdue=true" \
+  -H "Authorization: Bearer <access_token>" \
+  -o overdue_urgent.csv
+```
+
+```http Response headers (CSV)
+HTTP/1.1 200 OK
+Content-Type: text/csv
+Content-Disposition: attachment; filename=tasks.csv
+```
+</CodeGroup>
+
+The CSV response body looks like:
+
+```
+id,title,description,status,priority,due_date,completed_at,is_overdue,is_completed,created_at,updated_at,user_id,user_username,user_email,tags
+42,Write API documentation,Cover all endpoints.,completed,high,2026-04-30T17:00:00,2026-03-17T14:22:10,False,True,2026-03-17T09:00:00,2026-03-17T14:22:10,7,jsmith,jsmith@example.com,"Docs, Work"
+```
+
+## Export as JSON
+
+Set `format=json` to receive a JSON document. The response is returned inline with a `Content-Disposition: attachment` header suggesting `tasks.json` as the filename.
+
+<CodeGroup>
+```bash All tasks as JSON
+curl "https://api.example.com/api/tasks/export?format=json" \
+  -H "Authorization: Bearer <access_token>" \
+  -o tasks.json
+```
+
+```bash Filter by tag and export as JSON
+curl "https://api.example.com/api/tasks/export?format=json&tag_id=3" \
+  -H "Authorization: Bearer <access_token>" \
+  -o docs_tasks.json
+```
+
+```http Response headers (JSON)
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Disposition: attachment; filename=tasks.json
+```
+
+```json Response body (JSON)
+[
+  {
+    "id": 42,
+    "title": "Write API documentation",
+    "description": "Cover all endpoints with examples and response schemas.",
+    "status": "completed",
+    "priority": "high",
+    "due_date": "2026-04-30T17:00:00",
+    "completed_at": "2026-03-17T14:22:10",
+    "is_overdue": false,
+    "is_completed": true,
+    "created_at": "2026-03-17T09:00:00",
+    "updated_at": "2026-03-17T14:22:10",
+    "user_id": 7,
+    "user_username": "jsmith",
+    "user_email": "jsmith@example.com",
+    "tags": "Docs, Work"
+  }
+]
+```
+</CodeGroup>
+
+<Note>
+The JSON export is formatted with 2-space indentation. Datetime values are serialized as ISO 8601 strings.
+</Note>
+
+## Error responses
+
+If no tasks match the filters you provided, the API returns `404` rather than an empty export file:
+
+```json
+{
+  "success": false,
+  "message": "No hay tareas para exportar"
+}
+```

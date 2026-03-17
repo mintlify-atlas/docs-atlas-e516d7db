@@ -1,0 +1,149 @@
+---
+title: 'Register'
+description: 'Create a new user account.'
+---
+
+`POST /api/auth/register`
+
+Creates a new user account. Returns the created user object on success.
+
+<Info>This endpoint does not require authentication.</Info>
+
+<Info>**Rate limit:** 5 requests per hour per IP address.</Info>
+
+## Request body
+
+<ParamField body="username" type="string" required>
+  Unique username. Must be 3–80 characters and contain only letters, numbers, underscores, or hyphens.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Valid email address. Must be unique across all accounts.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Account password. Must be 8–128 characters and contain at least one uppercase letter, one lowercase letter, and one number.
+</ParamField>
+
+<ParamField body="first_name" type="string">
+  User's first name. Maximum 50 characters.
+</ParamField>
+
+<ParamField body="last_name" type="string">
+  User's last name. Maximum 50 characters.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean">
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable result message.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  The created user object.
+  <Expandable title="properties">
+    <ResponseField name="id" type="integer">
+      Unique user ID.
+    </ResponseField>
+    <ResponseField name="username" type="string">
+      The user's username.
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      The user's email address.
+    </ResponseField>
+    <ResponseField name="first_name" type="string">
+      The user's first name.
+    </ResponseField>
+    <ResponseField name="last_name" type="string">
+      The user's last name.
+    </ResponseField>
+    <ResponseField name="full_name" type="string">
+      Derived full name, or username if names are not set.
+    </ResponseField>
+    <ResponseField name="is_active" type="boolean">
+      Whether the account is active.
+    </ResponseField>
+    <ResponseField name="role" type="object">
+      The user's assigned role.
+      <Expandable title="properties">
+        <ResponseField name="id" type="integer">
+          Role ID.
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Role name (`admin` or `user`).
+        </ResponseField>
+        <ResponseField name="description" type="string">
+          Human-readable role description.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="created_at" type="string">
+      ISO 8601 timestamp of when the account was created.
+    </ResponseField>
+    <ResponseField name="updated_at" type="string">
+      ISO 8601 timestamp of the last account update.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request POST \
+  --url https://api.taskforge.example.com/api/auth/register \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "SecurePass123",
+  "first_name": "John",
+  "last_name": "Doe"
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{
+  "success": true,
+  "message": "Usuario registrado con exito",
+  "data": {
+    "id": 1,
+    "username": "johndoe",
+    "email": "john@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "full_name": "John Doe",
+    "is_active": true,
+    "role": {
+      "id": 2,
+      "name": "user",
+      "description": "Regular user"
+    },
+    "created_at": "2024-01-01T00:00:00",
+    "updated_at": "2024-01-01T00:00:00"
+  }
+}
+```
+
+```json 400
+{
+  "success": false,
+  "error": "La contrasena debe contener al menos una letra mayuscula"
+}
+```
+
+```json 409
+{
+  "success": false,
+  "error": "El nombre de usuario ya existe"
+}
+```
+
+</ResponseExample>

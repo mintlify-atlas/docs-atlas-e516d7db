@@ -1,0 +1,156 @@
+---
+title: 'Update user'
+description: 'Update profile information for a user account.'
+---
+
+`PUT /api/users/{user_id}`
+
+Updates fields on a user account. Also accepts `PATCH`. The fields available to update depend on the caller's role.
+
+<Info>
+  Requires a valid Bearer access token. Regular users can update their own `first_name` and `last_name` only. Admins can additionally update `role` and `is_active` for any user.
+</Info>
+
+## Path parameters
+
+<ParamField path="user_id" type="integer" required>
+  The unique identifier of the user to update.
+</ParamField>
+
+## Body parameters
+
+<ParamField body="first_name" type="string">
+  User's first name. Available to all authenticated users updating their own profile.
+</ParamField>
+
+<ParamField body="last_name" type="string">
+  User's last name. Available to all authenticated users updating their own profile.
+</ParamField>
+
+<ParamField body="role" type="string">
+  Role to assign to the user. Accepted values: `admin`, `user`. **Admin only.**
+</ParamField>
+
+<ParamField body="is_active" type="boolean">
+  Whether the user account is active. **Admin only.**
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean" required>
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Confirmation message.
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  The updated user object.
+  <Expandable title="properties">
+    <ResponseField name="id" type="integer">
+      Unique identifier for the user.
+    </ResponseField>
+    <ResponseField name="username" type="string">
+      Unique username.
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      User's email address.
+    </ResponseField>
+    <ResponseField name="first_name" type="string">
+      User's first name.
+    </ResponseField>
+    <ResponseField name="last_name" type="string">
+      User's last name.
+    </ResponseField>
+    <ResponseField name="full_name" type="string">
+      Computed full name.
+    </ResponseField>
+    <ResponseField name="is_active" type="boolean">
+      Whether the user account is active.
+    </ResponseField>
+    <ResponseField name="role" type="object">
+      The user's assigned role.
+      <Expandable title="properties">
+        <ResponseField name="id" type="integer">
+          Role ID.
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Role name: `admin` or `user`.
+        </ResponseField>
+        <ResponseField name="description" type="string">
+          Role description.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="created_at" type="string">
+      ISO 8601 timestamp when the user was created.
+    </ResponseField>
+    <ResponseField name="updated_at" type="string">
+      ISO 8601 timestamp when the user was last updated.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request PUT \
+  --url 'https://api.taskforge.com/api/users/1' \
+  --header 'Authorization: Bearer <access_token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "first_name": "John",
+    "last_name": "Doe"
+  }'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "message": "Usuario actualizado con exito",
+  "data": {
+    "id": 1,
+    "username": "johndoe",
+    "email": "john@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "full_name": "John Doe",
+    "is_active": true,
+    "role": {
+      "id": 2,
+      "name": "user",
+      "description": "Regular user"
+    },
+    "created_at": "2024-01-01T00:00:00",
+    "updated_at": "2024-01-15T09:00:00"
+  }
+}
+```
+
+```json 400
+{
+  "success": false,
+  "error": "No se proporcionaron datos"
+}
+```
+
+```json 403
+{
+  "success": false,
+  "error": "Prohibido"
+}
+```
+
+```json 404
+{
+  "success": false,
+  "error": "Usuario no encontrado"
+}
+```
+
+</ResponseExample>

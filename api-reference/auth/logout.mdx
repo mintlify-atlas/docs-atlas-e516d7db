@@ -1,0 +1,71 @@
+---
+title: 'Logout'
+description: 'Revoke a refresh token and end the current session.'
+---
+
+`POST /api/auth/logout`
+
+Revokes the provided refresh token, invalidating that session. The access token is not blocklisted server-side; it remains valid until it naturally expires.
+
+<Info>**Authentication:** Bearer access token required.</Info>
+
+## Request headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer access token. Format: `Bearer <access_token>`
+</ParamField>
+
+## Request body
+
+<ParamField body="refresh_token" type="string">
+  The refresh token to revoke. If omitted, the endpoint returns a success response without revoking any token.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean">
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable result message.
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request POST \
+  --url https://api.taskforge.example.com/api/auth/logout \
+  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "message": "Sesion cerrada con exito"
+}
+```
+
+```json 400
+{
+  "success": false,
+  "error": "Se requiere token de refresco"
+}
+```
+
+```json 401
+{
+  "success": false,
+  "error": "Token de acceso invalido o expirado"
+}
+```
+
+</ResponseExample>

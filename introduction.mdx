@@ -1,0 +1,79 @@
+---
+title: 'Introduction'
+description: 'TaskForge API is a RESTful task management API built with Flask, SQLAlchemy, and Azure SQL Database.'
+keywords: ['taskforge', 'task management', 'REST API', 'Flask', 'introduction']
+---
+
+TaskForge API is a RESTful backend service for managing tasks, users, and tags. It handles authentication, role-based access control, filtering, pagination, and data export — so you can focus on building your frontend or integrating with other services.
+
+The API is deployed on Azure App Service and available at:
+
+**Production URL:** [https://task-forge-gbd6h8gtg8hchve9.chilecentral-01.azurewebsites.net/api/docs](https://task-forge-gbd6h8gtg8hchve9.chilecentral-01.azurewebsites.net/api/docs)
+
+You can explore and test all endpoints interactively using the Swagger UI at that URL.
+
+## What TaskForge API solves
+
+Building task management from scratch means implementing authentication, permissions, filtering, pagination, and export every time. TaskForge API provides all of these out of the box:
+
+- You get a secure JWT-based auth system with access and refresh tokens
+- Role-based permissions let you separate admin and regular user capabilities
+- Tasks support status, priority, due dates, and custom tags — with filtering and sorting built in
+- Data export to CSV or JSON means you don't need to build reporting separately
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="JWT authentication" icon="lock">
+    Access tokens (1 hour) and refresh tokens (30 days) keep sessions secure. Token revocation is supported on logout and password change.
+  </Card>
+  <Card title="Role-based access control" icon="shield">
+    Two roles — Admin and User — with enforced permissions on every protected endpoint.
+  </Card>
+  <Card title="Full task CRUD" icon="list-checks">
+    Create, read, update, and delete tasks with title, description, priority, status, due date, and tag associations.
+  </Card>
+  <Card title="Tag system" icon="tag">
+    Organize tasks with custom tags that have names and colors. Tags are user-scoped.
+  </Card>
+  <Card title="Advanced filtering" icon="filter">
+    Filter tasks by status, priority, user, tags, and date range. Sort by any field in ascending or descending order.
+  </Card>
+  <Card title="Pagination" icon="book-open">
+    All list endpoints return paginated results. Configure page size up to 100 items per request.
+  </Card>
+  <Card title="Data export" icon="download">
+    Export your tasks to CSV or JSON for reporting or migration.
+  </Card>
+  <Card title="Rate limiting" icon="gauge">
+    Per-endpoint rate limits protect against abuse. Defaults are 200 requests/day and 50 requests/hour.
+  </Card>
+</CardGroup>
+
+## Technology stack
+
+| Component | Technology | Version |
+|---|---|---|
+| Web framework | Flask | 3.1.2 |
+| ORM | SQLAlchemy | 2.0.44 |
+| Authentication | Flask-JWT-Extended | 4.7.1 |
+| Production database | Azure SQL Database | — |
+| Development database | SQLite | — |
+| SQL Server connector | pyodbc | 5.3.0 |
+| CORS | Flask-CORS | 6.0.1 |
+| Rate limiting | Flask-Limiter | 4.0.0 |
+| API documentation | Flasgger (Swagger/OpenAPI) | 0.9.7.1 |
+| WSGI server | Gunicorn | 21.2.0 |
+| Containerization | Docker | — |
+| Hosting | Azure App Service (Linux) | Python 3.11 |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Clone the repo, configure your environment, and make your first API call in minutes.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Understand how JWT tokens work, how to register and log in, and how roles control access.
+  </Card>
+</CardGroup>

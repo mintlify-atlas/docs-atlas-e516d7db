@@ -1,0 +1,134 @@
+---
+title: "CI/CD pipeline"
+description: "Understand the GitHub Actions workflows that test and deploy TaskForge API automatically."
+keywords: ["CI/CD", "GitHub Actions", "SonarCloud", "pytest", "coverage", "Azure", "deployment", "pipeline"]
+---
+
+TaskForge API uses two GitHub Actions workflows. One runs code quality checks on every push and pull request. The other builds, tests, and deploys to Azure App Service on every push to `main`.
+
+## Workflows overview
+
+| Workflow | File | Trigger | Purpose |
+|---|---|---|---|
+| Code quality | `code-quality.yml` | Push and PR to `main`, `master`, `develop` | SonarCloud analysis + AXE accessibility tests |
+| Build, test, deploy | `main_task-forge.yml` | Push to `main` or `master` | Build artifact → run tests → deploy to Azure |
+
+## Code quality workflow
+
+The `code-quality.yml` workflow runs two independent jobs in parallel.
+
+### SonarCloud analysis
+
+1. Checks out the code with full history (`fetch-depth: 0`) for accurate blame data.
+2. Installs Python 3.11 and project dependencies.
+3. Runs `pytest` with XML coverage output.
+4. Sends results to SonarCloud using the `SONAR_TOKEN` secret.
+5. Uploads the coverage report as a workflow artifact.
+
+SonarCloud analyzes bugs, vulnerabilities, code smells, coverage, and duplications. Results are visible in the [SonarCloud dashboard](https://sonarcloud.io/summary/new_code?id=YamiDarknezz_task-forge-api).
+
+### AXE accessibility tests
+
+1. Installs Python and Node.js 20 dependencies.
+2. Installs Playwright with Chromium.
+3. Starts the Flask development server on port 5000.
+4. Waits until `GET /api/health` returns a successful response.
+5. Runs AXE accessibility tests against the Swagger UI using `tests/accessibility/axe-swagger-test.js`.
+6. Uploads the HTML accessibility report as an artifact.
+
+<Note>
+  The accessibility job uses `continue-on-error: true` for the AXE step, so a failing accessibility test does not block other workflows or deployments. Review the uploaded report to address any issues.
+</Note>
+
+**Required GitHub secret:**
+
+| Secret | Description |
+|---|---|
+| `SONAR_TOKEN` | Authentication token for SonarCloud |
+
+## Build, test, and deploy workflow
+
+The `main_task-forge.yml` workflow runs three sequential jobs. Each job must succeed before the next one starts.
+
+### Deployment flow
+
+```
+Push to main
+     │
+     ▼
+┌─────────┐
+│  Build  │  Install deps → zip artifact
+└────┬────┘
+     │
+     ▼
+┌─────────┐
+│  Test   │  pytest --cov-fail-under=70
+└────┬────┘
+     │
+     ▼
+┌─────────┐
+│ Deploy  │  Azure OIDC login → webapps-deploy
+└────┬────┘
+     │
+     ▼
+Azure App Service (Production slot)
+```
+
+<Steps>
+  <Step title="Build">
+    - Checks out the code on `ubuntu-latest` with Python 3.11.
+    - Creates a virtual environment and installs dependencies from `requirements.txt`.
+    - Packages the application into `release.zip`, excluding `.git`, `venv`, `__pycache__`, `.env`, `tests`, and coverage artifacts.
+    - Uploads `release.zip` as the `python-app` artifact for use by later jobs.
+  </Step>
+
+  <Step title="Test">
+    - Runs independently of the build job's virtual environment — installs dependencies again from scratch.
+    - Executes the full test suite:
+
+      ```bash
+      pytest --cov=app --cov-report=html --cov-report=xml --cov-report=term --cov-fail-under=70 -v
+      ```
+
+    - The `--cov-fail-under=70` flag fails the job if coverage drops below **70%**, blocking deployment.
+    - Uploads the HTML coverage report and `coverage.xml` as artifacts.
+    - Posts a coverage comment on pull requests when triggered by a PR event.
+  </Step>
+
+  <Step title="Deploy">
+    - Downloads the `python-app` artifact from the build job.
+    - Authenticates to Azure using OIDC (no long-lived credentials stored):
+
+      ```yaml
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_* }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_* }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_* }}
+      ```
+
+    - Deploys to the **Production** slot of the `task-forge` Azure Web App using `azure/webapps-deploy@v3`.
+  </Step>
+</Steps>
+
+**Required GitHub secrets:**
+
+| Secret | Description |
+|---|---|
+| `AZUREAPPSERVICE_CLIENTID_*` | Client ID of the Azure AD application |
+| `AZUREAPPSERVICE_TENANTID_*` | Azure AD tenant ID |
+| `AZUREAPPSERVICE_SUBSCRIPTIONID_*` | Azure subscription ID |
+
+## Test coverage requirement
+
+Deployment is blocked if test coverage falls below **70%**. The threshold is enforced by `--cov-fail-under=70` in the test job. The current coverage is above 73%.
+
+To check coverage locally before pushing:
+
+```bash
+pytest --cov=app --cov-report=term --cov-fail-under=70
+```
+
+## Manual trigger
+
+Both workflows support `workflow_dispatch`, so you can run them manually from the GitHub Actions tab without pushing a commit.

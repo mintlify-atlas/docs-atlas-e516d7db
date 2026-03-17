@@ -1,0 +1,165 @@
+---
+title: 'List users'
+description: 'Retrieve a paginated list of all registered users in TaskForge.'
+---
+
+`GET /api/users`
+
+Returns a paginated list of all users. Results can be sorted and paginated using query parameters.
+
+<Note>
+  **Admin only.** This endpoint requires the `admin` role.
+</Note>
+
+## Query parameters
+
+<ParamField query="page" type="integer" default="1">
+  Page number to retrieve.
+</ParamField>
+
+<ParamField query="per_page" type="integer" default="10">
+  Number of users to return per page.
+</ParamField>
+
+<ParamField query="sort_by" type="string" default="created_at">
+  Field to sort results by. Accepted values: `id`, `username`, `email`, `created_at`, `updated_at`.
+</ParamField>
+
+<ParamField query="sort_order" type="string" default="desc">
+  Sort direction. Accepted values: `asc`, `desc`.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean" required>
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  <Expandable title="properties">
+    <ResponseField name="users" type="User[]" required>
+      Array of user objects.
+      <Expandable title="User properties">
+        <ResponseField name="id" type="integer">
+          Unique identifier for the user.
+        </ResponseField>
+        <ResponseField name="username" type="string">
+          Unique username.
+        </ResponseField>
+        <ResponseField name="email" type="string">
+          User's email address.
+        </ResponseField>
+        <ResponseField name="first_name" type="string">
+          User's first name.
+        </ResponseField>
+        <ResponseField name="last_name" type="string">
+          User's last name.
+        </ResponseField>
+        <ResponseField name="full_name" type="string">
+          Computed full name (first + last). Falls back to `username` if name fields are not set.
+        </ResponseField>
+        <ResponseField name="is_active" type="boolean">
+          Whether the user account is active.
+        </ResponseField>
+        <ResponseField name="role" type="object">
+          The user's assigned role.
+          <Expandable title="properties">
+            <ResponseField name="id" type="integer">
+              Role ID.
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              Role name: `admin` or `user`.
+            </ResponseField>
+            <ResponseField name="description" type="string">
+              Role description.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="created_at" type="string">
+          ISO 8601 timestamp when the user was created.
+        </ResponseField>
+        <ResponseField name="updated_at" type="string">
+          ISO 8601 timestamp when the user was last updated.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="pagination" type="object" required>
+      Pagination metadata.
+      <Expandable title="properties">
+        <ResponseField name="page" type="integer">
+          Current page number.
+        </ResponseField>
+        <ResponseField name="per_page" type="integer">
+          Number of items per page.
+        </ResponseField>
+        <ResponseField name="total" type="integer">
+          Total number of users.
+        </ResponseField>
+        <ResponseField name="pages" type="integer">
+          Total number of pages.
+        </ResponseField>
+        <ResponseField name="has_next" type="boolean">
+          Whether a next page exists.
+        </ResponseField>
+        <ResponseField name="has_prev" type="boolean">
+          Whether a previous page exists.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request GET \
+  --url 'https://api.taskforge.com/api/users?page=1&per_page=10&sort_by=created_at&sort_order=desc' \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "id": 1,
+        "username": "johndoe",
+        "email": "john@example.com",
+        "first_name": "John",
+        "last_name": "Doe",
+        "full_name": "John Doe",
+        "is_active": true,
+        "role": {
+          "id": 2,
+          "name": "user",
+          "description": "Regular user"
+        },
+        "created_at": "2024-01-01T00:00:00",
+        "updated_at": "2024-01-01T00:00:00"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "per_page": 10,
+      "total": 25,
+      "pages": 3,
+      "has_next": true,
+      "has_prev": false
+    }
+  }
+}
+```
+
+```json 403
+{
+  "success": false,
+  "error": "Acceso de administrador requerido"
+}
+```
+
+</ResponseExample>

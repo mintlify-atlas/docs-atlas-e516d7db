@@ -1,80 +1,241 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Set up TaskForge API locally and make your first API call in under 10 minutes.'
+keywords: ['quickstart', 'setup', 'install', 'getting started', 'taskforge']
 ---
 
-## Get started in three steps
+This guide walks you through cloning the repository, configuring your environment, and making your first API call.
 
-Get your documentation site running locally and make your first customization.
+**Prerequisites:**
+- Python 3.11 or later
+- Git
+- Azure SQL Database — or use SQLite for local development (no additional setup)
+- Docker (optional, for containerized setup)
 
-### Step 1: Set up your local environment
+<Tabs>
+  <Tab title="Local setup">
+    <Steps>
+      <Step title="Clone the repository and create a virtual environment">
+        Clone the TaskForge API repository and set up a Python virtual environment to isolate dependencies.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+        ```bash
+        git clone https://github.com/YamiDarknezz/task-forge-api.git
+        cd task-forge-api
+        ```
 
-### Step 2: Deploy your changes
+        Then create and activate the virtual environment:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+        <CodeGroup>
+          ```bash Linux / macOS
+          python -m venv venv
+          source venv/bin/activate
+          ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+          ```bash Windows
+          python -m venv venv
+          venv\Scripts\activate
+          ```
+        </CodeGroup>
+      </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+      <Step title="Install dependencies">
+        Install all required Python packages:
 
-### Step 3: Go live
+        ```bash
+        pip install -r requirements.txt
+        ```
+      </Step>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+      <Step title="Configure your .env file">
+        Copy the example environment file and fill in your values:
 
-## Next steps
+        <CodeGroup>
+          ```bash Linux / macOS
+          cp .env.example .env
+          ```
 
-Now that you have your docs running, explore these key features:
+          ```bash Windows
+          copy .env.example .env
+          ```
+        </CodeGroup>
 
-<CardGroup cols={2}>
+        Open `.env` and update the values for your environment:
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+        ```bash .env
+        # Application
+        FLASK_APP=run.py
+        FLASK_ENV=development
+        SECRET_KEY=your-secret-key-change-in-production
+        JWT_SECRET_KEY=your-jwt-secret-key-change-in-production
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+        # Azure SQL Database (leave blank to use SQLite)
+        AZURE_SQL_SERVER=yourserver.database.windows.net
+        AZURE_SQL_DATABASE=taskforge_db
+        AZURE_SQL_USER=yourusername
+        AZURE_SQL_PASSWORD=YourPassword123
+        AZURE_SQL_PORT=1433
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+        # JWT token lifetimes (seconds)
+        JWT_ACCESS_TOKEN_EXPIRES=3600        # 1 hour
+        JWT_REFRESH_TOKEN_EXPIRES=2592000    # 30 days
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+        # Rate limiting
+        RATELIMIT_ENABLED=true
+        RATELIMIT_STORAGE_URL=memory://
+        RATELIMIT_DEFAULT=200 per day;50 per hour
 
-</CardGroup>
+        # CORS
+        CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+        # Pagination
+        DEFAULT_PAGE_SIZE=10
+        MAX_PAGE_SIZE=100
+
+        # Logging
+        LOG_LEVEL=INFO
+        LOG_FORMAT=json
+
+        # Application info
+        APP_NAME=TaskForge API
+        APP_VERSION=1.0.0
+        ```
+
+        <Note>
+          If you leave the `AZURE_SQL_*` variables blank, the application falls back to SQLite automatically. This is the easiest option for local development and testing.
+        </Note>
+      </Step>
+
+      <Step title="Initialize the database">
+        Choose the database option that matches your setup:
+
+        **SQLite (local development):**
+
+        ```bash
+        flask init-db
+        ```
+
+        **Azure SQL Database:**
+
+        Run `scripts/init_db_azure.sql` against your Azure SQL instance using Azure Data Studio or SQL Server Management Studio. This script creates all required tables and seeds the default roles.
+      </Step>
+
+      <Step title="Run the application">
+        Start the development server:
+
+        ```bash
+        python run.py
+        ```
+
+        The API is now running at `http://localhost:5000`. You can explore all endpoints in the interactive Swagger UI at `http://localhost:5000/api/docs`.
+      </Step>
+
+      <Step title="Make your first API calls">
+        Follow this sequence to register a user, log in, and create your first task.
+
+        **1. Register a user**
+
+        ```bash
+        curl -X POST http://localhost:5000/api/auth/register \
+          -H "Content-Type: application/json" \
+          -d '{
+            "username": "johndoe",
+            "email": "john@example.com",
+            "password": "SecurePass123!",
+            "first_name": "John",
+            "last_name": "Doe"
+          }'
+        ```
+
+        **2. Log in to get your tokens**
+
+        ```bash
+        curl -X POST http://localhost:5000/api/auth/login \
+          -H "Content-Type: application/json" \
+          -d '{
+            "email": "john@example.com",
+            "password": "SecurePass123!"
+          }'
+        ```
+
+        The response includes an `access_token` and a `refresh_token`:
+
+        ```json
+        {
+          "success": true,
+          "data": {
+            "access_token": "eyJhbGci...",
+            "refresh_token": "eyJhbGci...",
+            "user": {
+              "id": 1,
+              "username": "johndoe",
+              "email": "john@example.com",
+              "role": { "id": 2, "name": "user", "description": null }
+            }
+          }
+        }
+        ```
+
+        **3. Create your first task**
+
+        Use the `access_token` from the login response in the `Authorization` header:
+
+        ```bash
+        curl -X POST http://localhost:5000/api/tasks \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+          -d '{
+            "title": "Launch TaskForge integration",
+            "description": "Set up the API and create initial tasks",
+            "priority": "high",
+            "status": "in_progress",
+            "due_date": "2026-04-01T00:00:00"
+          }'
+        ```
+
+        <Tip>
+          Valid values for `priority` are `low`, `medium`, and `high`. Valid values for `status` are `pending`, `in_progress`, and `completed`.
+        </Tip>
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Docker">
+    If you prefer to run TaskForge API in a container, use Docker Compose. This starts the application with a single command and requires no Python installation.
+
+    **Prerequisites:** Docker and Docker Compose installed.
+
+    <Steps>
+      <Step title="Clone the repository">
+        ```bash
+        git clone https://github.com/YamiDarknezz/task-forge-api.git
+        cd task-forge-api
+        ```
+      </Step>
+
+      <Step title="Configure your .env file">
+        Copy and edit the environment file as described in the local setup above. Docker Compose reads from `.env` automatically.
+
+        ```bash
+        cp .env.example .env
+        # Edit .env with your values
+        ```
+      </Step>
+
+      <Step title="Build and start the container">
+        ```bash
+        docker-compose up --build
+        ```
+
+        The API starts at `http://localhost:5000` once the container is running.
+      </Step>
+
+      <Step title="Make your first API call">
+        Follow the same curl examples from the local setup tab to register, log in, and create a task.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## What's next
+
+Now that you have the API running, read the [Authentication](/authentication) guide to understand how JWT tokens work, how to refresh them, and how role-based access control affects what you can do.

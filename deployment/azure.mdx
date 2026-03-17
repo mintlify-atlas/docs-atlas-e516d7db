@@ -1,0 +1,231 @@
+---
+title: "Azure App Service deployment"
+description: "Deploy TaskForge API to Azure App Service with Azure SQL Database."
+keywords: ["Azure", "App Service", "Azure SQL", "deployment", "production", "Gunicorn", "startup"]
+---
+
+TaskForge API is designed to run on **Azure App Service (Linux)** with **Azure SQL Database**. This page walks you through setting up a new deployment from scratch.
+
+**Production URL:** `https://task-forge-gbd6h8gtg8hchve9.chilecentral-01.azurewebsites.net`
+
+## Prerequisites
+
+- An Azure subscription
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) installed and authenticated (`az login`)
+- A fork or clone of the TaskForge repository
+
+## Set up Azure App Service
+
+<Steps>
+  <Step title="Create a resource group">
+    ```bash
+    az group create --name taskforge-rg --location eastus
+    ```
+  </Step>
+
+  <Step title="Create an App Service plan">
+    ```bash
+    az appservice plan create \
+      --name taskforge-plan \
+      --resource-group taskforge-rg \
+      --sku B1 \
+      --is-linux
+    ```
+  </Step>
+
+  <Step title="Create the web app with Python 3.11">
+    ```bash
+    az webapp create \
+      --name task-forge \
+      --resource-group taskforge-rg \
+      --plan taskforge-plan \
+      --runtime "PYTHON:3.11"
+    ```
+  </Step>
+
+  <Step title="Set the startup command">
+    Azure App Service needs to know how to start the application. Set the startup command to use `startup.sh`, which initializes the database and starts Gunicorn:
+
+    ```bash
+    az webapp config set \
+      --name task-forge \
+      --resource-group taskforge-rg \
+      --startup-file "bash startup.sh"
+    ```
+
+    The startup script runs Gunicorn with 4 workers bound to port 8000:
+
+    ```bash
+    gunicorn --bind=0.0.0.0:8000 \
+             --workers=4 \
+             --timeout=120 \
+             --access-logfile /home/site/wwwroot/logs/access.log \
+             --error-logfile /home/site/wwwroot/logs/error.log \
+             --log-level info \
+             "run:app"
+    ```
+  </Step>
+
+  <Step title="Configure environment variables">
+    Set the required application settings in Azure App Service. These are injected as environment variables at runtime:
+
+    ```bash
+    az webapp config appsettings set \
+      --name task-forge \
+      --resource-group taskforge-rg \
+      --settings \
+        FLASK_ENV=production \
+        SECRET_KEY="<generate-a-secure-key>" \
+        JWT_SECRET_KEY="<generate-a-secure-key>" \
+        AZURE_SQL_SERVER="yourserver.database.windows.net" \
+        AZURE_SQL_DATABASE="taskforge_db" \
+        AZURE_SQL_USER="sqladmin" \
+        AZURE_SQL_PASSWORD="YourPassword123!" \
+        AZURE_SQL_PORT="1433" \
+        CORS_ORIGINS="https://your-frontend.com" \
+        LOG_LEVEL="INFO"
+    ```
+
+    Generate secure key values with:
+
+    ```bash
+    python -c "import secrets; print(secrets.token_hex(32))"
+    ```
+
+    <Warning>
+      Never use placeholder or example values for `SECRET_KEY` or `JWT_SECRET_KEY` in production. These keys protect user sessions and JWT tokens.
+    </Warning>
+  </Step>
+
+  <Step title="Create and initialize the Azure SQL database">
+    Create the database:
+
+    ```bash
+    az sql server create \
+      --name taskforge-server \
+      --resource-group taskforge-rg \
+      --location eastus \
+      --admin-user sqladmin \
+      --admin-password "YourPassword123!"
+
+    az sql db create \
+      --name taskforge_db \
+      --server taskforge-server \
+      --resource-group taskforge-rg \
+      --service-objective Basic
+    ```
+
+    Allow Azure services to connect to the SQL Server:
+
+    ```bash
+    az sql server firewall-rule create \
+      --name AllowAzureServices \
+      --server taskforge-server \
+      --resource-group taskforge-rg \
+      --start-ip-address 0.0.0.0 \
+      --end-ip-address 0.0.0.0
+    ```
+
+    Run the schema initialization script:
+
+    ```bash
+    sqlcmd -S taskforge-server.database.windows.net \
+           -d taskforge_db \
+           -U sqladmin \
+           -P 'YourPassword123!' \
+           -i scripts/init_db_azure.sql
+    ```
+  </Step>
+
+  <Step title="Deploy the application">
+    You can deploy directly with the Azure CLI or let the CI/CD pipeline handle it. For a manual one-time deploy:
+
+    ```bash
+    az webapp deployment source config \
+      --name task-forge \
+      --resource-group taskforge-rg \
+      --repo-url https://github.com/YamiDarknezz/task-forge-api \
+      --branch main \
+      --manual-integration
+    ```
+
+    For automated deployments on every push to `main`, see [CI/CD pipeline](/deployment/ci-cd).
+  </Step>
+
+  <Step title="Verify the deployment">
+    Check the health endpoint:
+
+    ```bash
+    curl https://task-forge-gbd6h8gtg8hchve9.chilecentral-01.azurewebsites.net/api/health
+    ```
+
+    Open the Swagger UI to confirm the API is fully operational:
+
+    ```
+    https://task-forge-gbd6h8gtg8hchve9.chilecentral-01.azurewebsites.net/api/docs
+    ```
+  </Step>
+</Steps>
+
+## Required environment variables
+
+The following variables must be set in **Azure App Service → Configuration → Application settings**:
+
+| Variable | Description |
+|---|---|
+| `FLASK_ENV` | Set to `production` |
+| `SECRET_KEY` | Long random string for Flask sessions |
+| `JWT_SECRET_KEY` | Long random string for JWT signing |
+| `AZURE_SQL_SERVER` | Azure SQL server hostname |
+| `AZURE_SQL_DATABASE` | Database name |
+| `AZURE_SQL_USER` | Database username |
+| `AZURE_SQL_PASSWORD` | Database password |
+| `AZURE_SQL_PORT` | Database port (default `1433`) |
+
+Optional but recommended:
+
+| Variable | Description |
+|---|---|
+| `CORS_ORIGINS` | Allowed frontend origins |
+| `LOG_LEVEL` | Log verbosity (`INFO`, `WARNING`, `ERROR`) |
+| `RATELIMIT_ENABLED` | Set to `true` for production |
+
+## Required GitHub secrets for OIDC authentication
+
+The CI/CD pipeline authenticates to Azure using OpenID Connect (OIDC), which avoids storing long-lived credentials. Add these secrets to your GitHub repository under **Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|---|---|
+| `AZUREAPPSERVICE_CLIENTID_*` | Client ID of the Azure AD application |
+| `AZUREAPPSERVICE_TENANTID_*` | Azure AD tenant ID |
+| `AZUREAPPSERVICE_SUBSCRIPTIONID_*` | Azure subscription ID |
+
+<Note>
+  The secret names contain a unique suffix generated by Azure. Copy the exact names from your App Service deployment center.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Application Error on first load">
+    The startup command or environment variables are missing. Verify that `bash startup.sh` is set as the startup command and all required variables are configured in Application settings.
+  </Accordion>
+
+  <Accordion title="Cannot connect to database">
+    Check the Azure SQL firewall rules. The **Allow Azure services and resources to access this server** setting must be enabled. Also verify the `AZURE_SQL_*` variables are correct.
+  </Accordion>
+
+  <Accordion title="Token validation failed">
+    `SECRET_KEY` or `JWT_SECRET_KEY` are not set, or were changed after tokens were issued. Set both variables and restart the app.
+  </Accordion>
+
+  <Accordion title="View live logs">
+    Stream application logs using the Azure CLI:
+
+    ```bash
+    az webapp log tail --name task-forge --resource-group taskforge-rg
+    ```
+
+    Or view them in the Azure Portal under **Monitoring → Log stream**.
+  </Accordion>
+</AccordionGroup>

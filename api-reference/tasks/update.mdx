@@ -1,0 +1,176 @@
+---
+title: 'Update task'
+description: 'Update one or more fields of an existing task.'
+---
+
+`PUT /api/tasks/{task_id}`
+
+Updates an existing task. All body fields are optional — only the fields you provide are changed. Regular users can only update their own tasks. Admin users can update any task.
+
+You can also use `PATCH /api/tasks/{task_id}` with identical behavior.
+
+<Info>**Authentication:** Bearer access token required.</Info>
+
+## Path parameters
+
+<ParamField path="task_id" type="integer" required>
+  The ID of the task to update.
+</ParamField>
+
+## Request body
+
+<ParamField body="title" type="string">
+  Updated task title. Maximum 200 characters.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated task description. Maximum 5000 characters. Pass `null` to clear.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Updated task status. Allowed values: `pending`, `in_progress`, `completed`, `cancelled`.
+  Setting status to `completed` automatically sets `completed_at` to the current time.
+  Changing status away from `completed` clears `completed_at`.
+</ParamField>
+
+<ParamField body="priority" type="string">
+  Updated task priority. Allowed values: `low`, `medium`, `high`, `urgent`.
+</ParamField>
+
+<ParamField body="due_date" type="string">
+  Updated due date in ISO 8601 format. Pass `null` to clear.
+</ParamField>
+
+<ParamField body="tags" type="integer[]">
+  Replacement set of tag IDs. Replaces all existing tags on the task.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean">
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable result message.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  The updated task object.
+  <Expandable title="properties">
+    <ResponseField name="id" type="integer">
+      Unique task ID.
+    </ResponseField>
+    <ResponseField name="title" type="string">
+      Task title.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Task description.
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      Task status.
+    </ResponseField>
+    <ResponseField name="priority" type="string">
+      Task priority.
+    </ResponseField>
+    <ResponseField name="due_date" type="string">
+      ISO 8601 due date, or `null`.
+    </ResponseField>
+    <ResponseField name="completed_at" type="string">
+      ISO 8601 completion timestamp, or `null`.
+    </ResponseField>
+    <ResponseField name="is_overdue" type="boolean">
+      Whether the task is past its due date and not completed.
+    </ResponseField>
+    <ResponseField name="is_completed" type="boolean">
+      Whether the task status is `completed`.
+    </ResponseField>
+    <ResponseField name="created_at" type="string">
+      ISO 8601 creation timestamp.
+    </ResponseField>
+    <ResponseField name="updated_at" type="string">
+      ISO 8601 last-updated timestamp.
+    </ResponseField>
+    <ResponseField name="user_id" type="integer">
+      ID of the user who owns the task.
+    </ResponseField>
+    <ResponseField name="tags" type="object[]">
+      Tags associated with the task.
+      <Expandable title="tag properties">
+        <ResponseField name="id" type="integer">
+          Tag ID.
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Tag name.
+        </ResponseField>
+        <ResponseField name="color" type="string">
+          Tag color as a hex code.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request PUT \
+  --url https://api.taskforge.example.com/api/tasks/1 \
+  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "status": "completed",
+  "priority": "urgent"
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "message": "Tarea actualizada con exito",
+  "data": {
+    "id": 1,
+    "title": "Complete API documentation",
+    "description": "Write comprehensive docs for all endpoints",
+    "status": "completed",
+    "priority": "urgent",
+    "due_date": "2024-12-31T23:59:59",
+    "completed_at": "2024-01-16T09:00:00",
+    "is_overdue": false,
+    "is_completed": true,
+    "created_at": "2024-01-15T10:30:00",
+    "updated_at": "2024-01-16T09:00:00",
+    "user_id": 1,
+    "tags": [
+      {"id": 1, "name": "Work", "color": "#FF5733"}
+    ]
+  }
+}
+```
+
+```json 400
+{
+  "success": false,
+  "error": "Estado debe ser uno de: pending, in_progress, completed, cancelled"
+}
+```
+
+```json 403
+{
+  "success": false,
+  "error": "No tienes permiso para actualizar esta tarea"
+}
+```
+
+```json 404
+{
+  "success": false,
+  "error": "Tarea no encontrada"
+}
+```
+
+</ResponseExample>

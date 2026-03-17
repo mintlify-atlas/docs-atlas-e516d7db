@@ -1,0 +1,67 @@
+---
+title: 'Delete tag'
+description: 'Permanently delete a tag by its ID.'
+---
+
+`DELETE /api/tags/{tag_id}`
+
+Permanently deletes a tag. The tag will be disassociated from any tasks it was attached to.
+
+<Note>
+  **Admin only.** This endpoint requires the `admin` role.
+</Note>
+
+<Warning>
+  This action is irreversible. Deleted tags cannot be recovered.
+</Warning>
+
+## Path parameters
+
+<ParamField path="tag_id" type="integer" required>
+  The unique identifier of the tag to delete.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean" required>
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Confirmation message.
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request DELETE \
+  --url 'https://api.taskforge.com/api/tags/1' \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "message": "Etiqueta eliminada con exito"
+}
+```
+
+```json 403
+{
+  "success": false,
+  "error": "Acceso de administrador requerido"
+}
+```
+
+```json 404
+{
+  "success": false,
+  "error": "Etiqueta no encontrada"
+}
+```
+
+</ResponseExample>

@@ -1,0 +1,68 @@
+---
+title: "CORS configuration"
+description: "Configure cross-origin resource sharing to allow your frontend to communicate with the TaskForge API."
+keywords: ["CORS", "cross-origin", "Flask-CORS", "CORS_ORIGINS", "frontend"]
+---
+
+TaskForge API uses [Flask-CORS](https://flask-cors.readthedocs.io/) to handle cross-origin resource sharing (CORS). You need to configure CORS when your frontend runs on a different origin than the API.
+
+## When to configure CORS
+
+You need to set `CORS_ORIGINS` whenever your frontend and API are on different origins. For example:
+
+- Frontend at `http://localhost:3000`, API at `http://localhost:5000` — different port, different origin
+- Frontend at `https://app.example.com`, API at `https://api.example.com` — different subdomain, different origin
+- A Vite dev server at `http://localhost:5173` consuming the API
+
+If your frontend and API share the same origin (e.g., the API serves the frontend directly), you do not need to configure CORS.
+
+## Configuration
+
+Set the `CORS_ORIGINS` variable to a comma-separated list of allowed origins:
+
+```env
+# Development — allow both common frontend dev servers
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# Production — allow only your production frontend
+CORS_ORIGINS=https://app.example.com
+```
+
+The API allows the following methods from configured origins: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`.
+
+The following request headers are allowed: `Content-Type`, `Authorization`.
+
+## Development defaults
+
+The default value covers the two most common frontend development servers:
+
+```env
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+```
+
+This works out of the box for React (Create React App on port 3000) and Vite-based apps (on port 5173).
+
+## Production recommendations
+
+<Warning>
+  Do not use a wildcard (`*`) for `CORS_ORIGINS` in production. Wildcards allow any website to make credentialed requests to your API on behalf of users. Always list specific origins.
+</Warning>
+
+For production:
+
+```env
+# List every origin that legitimately needs to access the API
+CORS_ORIGINS=https://app.yourcompany.com,https://admin.yourcompany.com
+```
+
+<Tip>
+  If your frontend is hosted on the same domain as the API (e.g., served by the same Nginx instance), you can omit `CORS_ORIGINS` entirely or remove its value, since same-origin requests are never blocked by CORS.
+</Tip>
+
+## Troubleshooting
+
+If you see a CORS error in your browser console, check:
+
+1. The origin your frontend is running on matches an entry in `CORS_ORIGINS` exactly — protocol, hostname, and port must all match.
+2. The API has been restarted after updating the variable.
+3. There are no trailing slashes in the origin value (`http://localhost:3000` not `http://localhost:3000/`).

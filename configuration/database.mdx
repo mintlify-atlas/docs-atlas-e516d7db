@@ -1,0 +1,111 @@
+---
+title: "Database configuration"
+description: "Configure the database connection for TaskForge API, using Azure SQL for production or SQLite for development."
+keywords: ["database", "Azure SQL", "SQLite", "connection string", "schema", "init-db"]
+---
+
+TaskForge API supports two database backends:
+
+- **Azure SQL** — recommended for production
+- **SQLite** — automatic fallback for development and testing
+
+## How the database is selected
+
+The API checks for all four Azure SQL environment variables at startup. If they are all present, it connects to Azure SQL. If any are missing, it falls back to SQLite automatically.
+
+```python
+# Azure SQL is used when all four variables are set:
+# AZURE_SQL_SERVER, AZURE_SQL_DATABASE, AZURE_SQL_USER, AZURE_SQL_PASSWORD
+
+# Otherwise, SQLite is used:
+# sqlite:///taskforge.db
+```
+
+## Azure SQL (production)
+
+Set the following environment variables to connect to an Azure SQL database:
+
+| Variable | Description | Example |
+|---|---|---|
+| `AZURE_SQL_SERVER` | Server hostname | `yourserver.database.windows.net` |
+| `AZURE_SQL_DATABASE` | Database name | `taskforge_db` |
+| `AZURE_SQL_USER` | Login username | `sqladmin` |
+| `AZURE_SQL_PASSWORD` | Login password | `P@ssw0rd123!` |
+| `AZURE_SQL_PORT` | Server port | `1433` |
+
+The API builds the connection string in this format:
+
+```
+mssql+pyodbc://<user>:<password>@<server>:<port>/<database>?driver=ODBC+Driver+17+for+SQL+Server
+```
+
+<Note>
+  The ODBC Driver 17 for SQL Server must be installed on the host. The [Dockerfile](/deployment/docker) installs it automatically as part of the image build.
+</Note>
+
+### Initializing the Azure SQL schema
+
+Run the initialization script against your Azure SQL database using Azure Data Studio, SQL Server Management Studio, or the `sqlcmd` CLI:
+
+```bash
+sqlcmd -S yourserver.database.windows.net -d taskforge_db -U sqladmin -P 'YourPassword' -i scripts/init_db_azure.sql
+```
+
+The script creates all tables, indexes, default roles, a default admin user, and sample tags.
+
+<Warning>
+  The default admin password in `init_db_azure.sql` is `Admin123!`. Change it immediately after the first login using the `/api/auth/change-password` endpoint or by running `scripts/reset_admin_password.py`.
+</Warning>
+
+### Firewall configuration
+
+For Azure App Service deployments, allow Azure services to connect to your SQL Server:
+
+1. In the Azure Portal, open your **SQL Server** resource (not the database).
+2. Go to **Networking** → **Firewall rules**.
+3. Enable **Allow Azure services and resources to access this server**.
+4. Save the changes.
+
+## SQLite (development)
+
+When the Azure SQL variables are not set, the API uses a local SQLite file at `taskforge.db` in the project root. Initialize it with:
+
+```bash
+flask init-db
+```
+
+<Note>
+  SQLite is not recommended for production. The database file is stored on the local filesystem and will be lost if the container or App Service instance is replaced.
+</Note>
+
+## Database schema
+
+The schema consists of six tables:
+
+| Table | Description |
+|---|---|
+| `roles` | User roles (`admin`, `user`) |
+| `users` | User accounts with hashed passwords and role assignment |
+| `refresh_tokens` | Active JWT refresh tokens with expiry and revocation flag |
+| `tasks` | Task records with status, priority, and due date |
+| `tags` | Labels that can be applied to tasks, with name and color |
+| `task_tags` | Many-to-many join table linking tasks to tags |
+
+### Table relationships
+
+```
+roles ──< users ──< tasks ──< task_tags >── tags
+                 └──< refresh_tokens
+```
+
+- Each user has one role.
+- Each task belongs to one user.
+- Each task can have many tags via `task_tags`.
+- Deleting a user cascades to their tasks and refresh tokens.
+
+### Task constraints
+
+The `tasks` table enforces allowed values for `status` and `priority` at the database level:
+
+- `status`: `pending`, `in_progress`, `completed`, `cancelled`
+- `priority`: `low`, `medium`, `high`, `urgent`

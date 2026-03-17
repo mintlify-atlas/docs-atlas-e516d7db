@@ -1,0 +1,104 @@
+---
+title: "Rate limiting"
+description: "Understand and configure rate limits to protect the TaskForge API from abuse."
+keywords: ["rate limiting", "Flask-Limiter", "429", "RATELIMIT_DEFAULT", "throttle"]
+---
+
+TaskForge API uses [Flask-Limiter](https://flask-limiter.readthedocs.io/) to enforce rate limits on all endpoints. Rate limiting protects the API from abuse and ensures fair usage across clients.
+
+## Default limits
+
+By default, all endpoints share these limits:
+
+- **200 requests per day**
+- **50 requests per hour**
+
+These defaults are controlled by the `RATELIMIT_DEFAULT` environment variable:
+
+```env
+RATELIMIT_DEFAULT=200 per day;50 per hour
+```
+
+Separate multiple limits with a semicolon. Both limits apply simultaneously — a client that exhausts the hourly limit must wait for the hour to reset even if it hasn't reached the daily limit.
+
+## Per-endpoint limits
+
+Some endpoints have stricter limits applied regardless of the default:
+
+| Endpoint | Method | Limit |
+|---|---|---|
+| `/api/auth/register` | POST | 5 per hour |
+| `/api/auth/login` | POST | 10 per hour |
+| `/api/auth/change-password` | POST | 3 per hour |
+| `/api/tasks` | POST | 50 per hour |
+| `/api/tags` | POST | 20 per hour |
+
+These per-endpoint limits are more restrictive than the default to prevent brute-force and spam attacks on sensitive operations.
+
+## Storage backend
+
+Rate limit counters are stored using `RATELIMIT_STORAGE_URL`. The default is in-memory storage:
+
+```env
+RATELIMIT_STORAGE_URL=memory://
+```
+
+<Warning>
+  In-memory storage is suitable for a single-instance deployment only. If you run multiple instances (e.g., behind a load balancer), each instance tracks its own counters independently, so the effective limit per user is multiplied by the number of instances. Use a shared Redis backend for multi-instance deployments:
+
+  ```env
+  RATELIMIT_STORAGE_URL=redis://localhost:6379/0
+  ```
+</Warning>
+
+## Enabling and disabling rate limiting
+
+Rate limiting is enabled by default. You can disable it with:
+
+```env
+RATELIMIT_ENABLED=false
+```
+
+<Note>
+  Rate limiting is automatically disabled in the `testing` environment to avoid interfering with test suites.
+</Note>
+
+## Rate limit headers
+
+Every response includes headers that tell the client its current limit status:
+
+| Header | Description |
+|---|---|
+| `X-RateLimit-Limit` | Total requests allowed in the current window |
+| `X-RateLimit-Remaining` | Requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp when the current window resets |
+
+## When a limit is exceeded
+
+When a client exceeds its rate limit, the API returns a `429 Too Many Requests` response:
+
+```json
+{
+  "message": "Too Many Requests",
+  "status": 429
+}
+```
+
+The client should wait until the `X-RateLimit-Reset` time before retrying.
+
+## Format reference
+
+The `RATELIMIT_DEFAULT` variable accepts Flask-Limiter's string format:
+
+```env
+# Single limit
+RATELIMIT_DEFAULT=100 per hour
+
+# Multiple limits (semicolon-separated)
+RATELIMIT_DEFAULT=1000 per day;100 per hour;10 per minute
+
+# Shorthand
+RATELIMIT_DEFAULT=200/day;50/hour
+```
+
+Valid time periods are: `second`, `minute`, `hour`, `day`, `month`, `year`.

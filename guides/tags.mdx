@@ -1,0 +1,229 @@
+---
+title: "Using tags"
+description: "Organize tasks with tags. Create and assign tags, and manage them as an admin."
+keywords: ["tags", "labels", "categorize tasks", "task organization"]
+---
+
+Tags let you group and filter tasks across any number of categories. A task can have multiple tags, and a tag can be assigned to multiple tasks.
+
+## Tag model
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | integer | Auto-generated unique identifier |
+| `name` | string | Required. Unique, up to 50 characters |
+| `color` | string | Hex color code (e.g. `#FF5733`). Defaults to `#808080` |
+| `description` | string | Optional. Up to 255 characters |
+| `task_count` | integer | Number of tasks currently using this tag |
+| `created_at` | datetime | ISO 8601 creation timestamp |
+| `updated_at` | datetime | ISO 8601 last-updated timestamp |
+
+Tag names are unique across the system. Attempting to create a tag with a name that already exists returns `409 Conflict`.
+
+## Create a tag
+
+`POST /api/tags`
+
+Any authenticated user can create tags. Only `name` is required.
+
+<CodeGroup>
+```bash Minimal request
+curl -X POST https://api.example.com/api/tags \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Work"}'
+```
+
+```bash With color and description
+curl -X POST https://api.example.com/api/tags \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Urgent",
+    "color": "#E74C3C",
+    "description": "Tasks that need immediate attention"
+  }'
+```
+
+```json Response (201)
+{
+  "success": true,
+  "message": "Etiqueta creada con exito",
+  "data": {
+    "id": 5,
+    "name": "Urgent",
+    "color": "#E74C3C",
+    "description": "Tasks that need immediate attention",
+    "task_count": 0,
+    "created_at": "2026-03-17T09:00:00",
+    "updated_at": "2026-03-17T09:00:00"
+  }
+}
+```
+</CodeGroup>
+
+<Note>
+The `color` field must be a valid 6-digit hex code starting with `#`, for example `#FF5733`. Shorthand hex codes like `#F53` are not accepted.
+</Note>
+
+<Note>
+Creating tags is rate-limited to 20 requests per hour per user.
+</Note>
+
+## List all tags
+
+`GET /api/tags`
+
+Returns a paginated list of all tags sorted by name ascending by default. All authenticated users can list tags.
+
+<CodeGroup>
+```bash Request
+curl https://api.example.com/api/tags \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```json Response (200)
+{
+  "success": true,
+  "data": {
+    "tags": [
+      {
+        "id": 1,
+        "name": "Docs",
+        "color": "#27AE60",
+        "description": "Documentation tasks",
+        "task_count": 5,
+        "created_at": "2026-01-10T08:00:00",
+        "updated_at": "2026-01-10T08:00:00"
+      },
+      {
+        "id": 5,
+        "name": "Urgent",
+        "color": "#E74C3C",
+        "description": "Tasks that need immediate attention",
+        "task_count": 2,
+        "created_at": "2026-03-17T09:00:00",
+        "updated_at": "2026-03-17T09:00:00"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "per_page": 50,
+      "total": 2,
+      "total_pages": 1,
+      "has_next": false,
+      "has_prev": false
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Get a single tag
+
+`GET /api/tags/{tag_id}`
+
+```bash
+curl https://api.example.com/api/tags/5 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+## Assign tags to a task
+
+Tags are assigned to a task by passing an array of tag IDs in the `tags` field when creating or updating a task. The array replaces the task's existing tag assignments — it is not additive.
+
+<Steps>
+  <Step title="Find the tag IDs you need">
+    Call `GET /api/tags` to retrieve available tags and note the `id` of each one you want to assign.
+  </Step>
+  <Step title="Create or update the task with tags">
+    Pass the tag IDs in the `tags` array.
+
+    ```bash
+    curl -X POST https://api.example.com/api/tasks \
+      -H "Authorization: Bearer <access_token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "title": "Write release notes",
+        "priority": "high",
+        "tags": [1, 5]
+      }'
+    ```
+  </Step>
+  <Step title="Update tags on an existing task">
+    Pass the full new set of tag IDs. Any tags not in the array are removed.
+
+    ```bash
+    curl -X PUT https://api.example.com/api/tasks/42 \
+      -H "Authorization: Bearer <access_token>" \
+      -H "Content-Type: application/json" \
+      -d '{"tags": [1]}'
+    ```
+
+    To remove all tags from a task, pass an empty array:
+
+    ```bash
+    curl -X PUT https://api.example.com/api/tasks/42 \
+      -H "Authorization: Bearer <access_token>" \
+      -H "Content-Type: application/json" \
+      -d '{"tags": []}'
+    ```
+  </Step>
+</Steps>
+
+## Update a tag (admin only)
+
+`PUT /api/tags/{tag_id}`
+
+<Warning>
+Updating and deleting tags requires admin privileges. Non-admin requests return `403 Forbidden`.
+</Warning>
+
+<CodeGroup>
+```bash Request
+curl -X PUT https://api.example.com/api/tags/5 \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Critical",
+    "color": "#C0392B",
+    "description": "Critical priority tasks"
+  }'
+```
+
+```json Response (200)
+{
+  "success": true,
+  "message": "Etiqueta actualizada con exito",
+  "data": {
+    "id": 5,
+    "name": "Critical",
+    "color": "#C0392B",
+    "description": "Critical priority tasks",
+    "task_count": 2,
+    "created_at": "2026-03-17T09:00:00",
+    "updated_at": "2026-03-17T15:30:00"
+  }
+}
+```
+</CodeGroup>
+
+## Delete a tag (admin only)
+
+`DELETE /api/tags/{tag_id}`
+
+Deleting a tag removes it from all tasks it was assigned to.
+
+<CodeGroup>
+```bash Request
+curl -X DELETE https://api.example.com/api/tags/5 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```json Response (200)
+{
+  "success": true,
+  "message": "Etiqueta eliminada con exito"
+}
+```
+</CodeGroup>

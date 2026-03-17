@@ -1,0 +1,147 @@
+---
+title: 'List tags'
+description: 'Retrieve a paginated list of all tags available in TaskForge.'
+---
+
+`GET /api/tags`
+
+Returns a paginated list of all tags. Results can be sorted and paginated using query parameters.
+
+<Info>
+  Requires a valid Bearer access token. All authenticated users can access this endpoint.
+</Info>
+
+## Query parameters
+
+<ParamField query="page" type="integer" default="1">
+  Page number to retrieve.
+</ParamField>
+
+<ParamField query="per_page" type="integer" default="50">
+  Number of tags to return per page.
+</ParamField>
+
+<ParamField query="sort_by" type="string" default="name">
+  Field to sort results by. Accepted values: `id`, `name`, `created_at`, `updated_at`.
+</ParamField>
+
+<ParamField query="sort_order" type="string" default="asc">
+  Sort direction. Accepted values: `asc`, `desc`.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean" required>
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  <Expandable title="properties">
+    <ResponseField name="tags" type="Tag[]" required>
+      Array of tag objects.
+      <Expandable title="Tag properties">
+        <ResponseField name="id" type="integer">
+          Unique identifier for the tag.
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Tag display name.
+        </ResponseField>
+        <ResponseField name="color" type="string">
+          Hex color code for the tag (e.g., `#FF5733`).
+        </ResponseField>
+        <ResponseField name="description" type="string">
+          Optional description of the tag.
+        </ResponseField>
+        <ResponseField name="task_count" type="integer">
+          Number of tasks currently associated with this tag.
+        </ResponseField>
+        <ResponseField name="created_at" type="string">
+          ISO 8601 timestamp when the tag was created.
+        </ResponseField>
+        <ResponseField name="updated_at" type="string">
+          ISO 8601 timestamp when the tag was last updated.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="pagination" type="object" required>
+      Pagination metadata.
+      <Expandable title="properties">
+        <ResponseField name="page" type="integer">
+          Current page number.
+        </ResponseField>
+        <ResponseField name="per_page" type="integer">
+          Number of items per page.
+        </ResponseField>
+        <ResponseField name="total" type="integer">
+          Total number of tags.
+        </ResponseField>
+        <ResponseField name="pages" type="integer">
+          Total number of pages.
+        </ResponseField>
+        <ResponseField name="has_next" type="boolean">
+          Whether a next page exists.
+        </ResponseField>
+        <ResponseField name="has_prev" type="boolean">
+          Whether a previous page exists.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request GET \
+  --url 'https://api.taskforge.com/api/tags?page=1&per_page=50&sort_by=name&sort_order=asc' \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "data": {
+    "tags": [
+      {
+        "id": 1,
+        "name": "Work",
+        "color": "#FF5733",
+        "description": "Work-related tasks",
+        "task_count": 12,
+        "created_at": "2024-01-01T00:00:00",
+        "updated_at": "2024-01-01T00:00:00"
+      },
+      {
+        "id": 2,
+        "name": "Personal",
+        "color": "#33C1FF",
+        "description": "Personal errands and tasks",
+        "task_count": 5,
+        "created_at": "2024-01-02T00:00:00",
+        "updated_at": "2024-01-02T00:00:00"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "per_page": 50,
+      "total": 2,
+      "pages": 1,
+      "has_next": false,
+      "has_prev": false
+    }
+  }
+}
+```
+
+```json 401
+{
+  "success": false,
+  "error": "Token de acceso requerido"
+}
+```
+
+</ResponseExample>

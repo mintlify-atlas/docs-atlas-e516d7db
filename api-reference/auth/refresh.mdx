@@ -1,0 +1,66 @@
+---
+title: 'Refresh token'
+description: 'Exchange a refresh token for a new access token.'
+---
+
+`POST /api/auth/refresh`
+
+Issues a new short-lived access token using a valid refresh token. Use this endpoint when the current access token has expired.
+
+<Info>**Authentication:** Bearer refresh token required in the `Authorization` header.</Info>
+
+## Request headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer refresh token obtained from the [login endpoint](/api-reference/auth/login).
+  Format: `Bearer <refresh_token>`
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean">
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable result message.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="access_token" type="string">
+      New short-lived JWT access token.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request POST \
+  --url https://api.taskforge.example.com/api/auth/refresh \
+  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "message": "Token refrescado con exito",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+```json 401
+{
+  "success": false,
+  "error": "Token de refresco expirado o revocado"
+}
+```
+
+</ResponseExample>

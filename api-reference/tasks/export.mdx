@@ -1,0 +1,95 @@
+---
+title: 'Export tasks'
+description: 'Download tasks as a CSV or JSON file.'
+---
+
+`GET /api/tasks/export`
+
+Exports the authenticated user's tasks as a downloadable file. Supports CSV and JSON formats. Optionally filter by status, priority, tag, or overdue status before exporting.
+
+Returns a file download response rather than a JSON body.
+
+<Info>**Authentication:** Bearer access token required.</Info>
+
+## Query parameters
+
+<ParamField query="format" type="string" default="csv">
+  Export file format. Allowed values: `csv`, `json`.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter exported tasks by status. Allowed values: `pending`, `in_progress`, `completed`, `cancelled`.
+</ParamField>
+
+<ParamField query="priority" type="string">
+  Filter exported tasks by priority. Allowed values: `low`, `medium`, `high`, `urgent`.
+</ParamField>
+
+<ParamField query="tag_id" type="integer">
+  Filter exported tasks by tag ID.
+</ParamField>
+
+<ParamField query="overdue" type="boolean">
+  When `true`, exports only overdue tasks.
+</ParamField>
+
+## Response
+
+On success, the response is a file download with the appropriate `Content-Disposition` header:
+
+- `format=csv` — returns `tasks.csv` with `Content-Type: text/csv`
+- `format=json` — returns `tasks.json` with `Content-Type: application/json`
+
+If no tasks match the applied filters, a `404` error is returned.
+
+<RequestExample>
+
+```bash cURL (CSV)
+curl --request GET \
+  --url 'https://api.taskforge.example.com/api/tasks/export?format=csv&status=completed' \
+  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' \
+  --output tasks.csv
+```
+
+```bash cURL (JSON)
+curl --request GET \
+  --url 'https://api.taskforge.example.com/api/tasks/export?format=json' \
+  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' \
+  --output tasks.json
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 (JSON format)
+[
+  {
+    "id": 1,
+    "title": "Complete API documentation",
+    "description": "Write comprehensive docs for all endpoints",
+    "status": "completed",
+    "priority": "high",
+    "due_date": "2024-12-31T23:59:59",
+    "completed_at": "2024-01-16T09:00:00",
+    "created_at": "2024-01-15T10:30:00",
+    "tags": "Work"
+  }
+]
+```
+
+```json 401
+{
+  "success": false,
+  "error": "Token de acceso invalido o expirado"
+}
+```
+
+```json 404
+{
+  "success": false,
+  "error": "No hay tareas para exportar"
+}
+```
+
+</ResponseExample>

@@ -1,97 +1,91 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "TaskForge API"
+description: "A professional RESTful task management API built with Flask, featuring JWT authentication, role-based access control, advanced filtering, and Azure deployment."
 ---
 
-## Setting up
-
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get your first API call working in under 5 minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Authentication" icon="lock" href="/authentication">
+    Learn how JWT tokens, access/refresh flows, and RBAC work.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Task Management" icon="list-check" href="/guides/tasks">
+    Create, filter, update, and organize tasks with tags.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="API Reference" icon="code" href="/api-reference/auth/login">
+    Full endpoint documentation with request and response schemas.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What is TaskForge API?
 
-Everything you need to create world-class documentation.
+TaskForge API is a production-grade RESTful backend for task management. It is built with **Flask 3**, **SQLAlchemy 2**, and deployed on **Azure App Service** with **Azure SQL Database**. The API provides a complete foundation for any task-tracking application, featuring secure authentication, fine-grained access control, and rich query capabilities.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+**Live demo:** [https://task-forge-gbd6h8gtg8hchve9.chilecentral-01.azurewebsites.net/api/docs](https://task-forge-gbd6h8gtg8hchve9.chilecentral-01.azurewebsites.net/api/docs)
 
-## Need inspiration?
+## Key features
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<CardGroup cols={2}>
+  <Card title="JWT Authentication" icon="key">
+    Full access and refresh token flow with bcrypt password hashing and database-backed token revocation.
+  </Card>
+  <Card title="Role-Based Access Control" icon="shield-halved">
+    Admin and User roles with middleware-enforced permission checks on every endpoint.
+  </Card>
+  <Card title="Task CRUD & Lifecycle" icon="list-check">
+    Create tasks with title, description, priority (low/medium/high/urgent), status, due dates, and tags.
+  </Card>
+  <Card title="Advanced Filtering" icon="filter">
+    Filter by status, priority, tags, date ranges, full-text search, and overdue flag with server-side pagination.
+  </Card>
+  <Card title="Tag System" icon="tag">
+    Organize tasks with color-coded tags. Many-to-many relationship between tasks and tags.
+  </Card>
+  <Card title="Data Export" icon="file-export">
+    Export task lists to CSV or JSON with optional filter parameters.
+  </Card>
+  <Card title="Rate Limiting" icon="gauge-high">
+    Per-endpoint rate limiting via Flask-Limiter. Configurable globally through environment variables.
+  </Card>
+  <Card title="Azure Deployment" icon="cloud">
+    CI/CD pipeline with GitHub Actions that tests, builds, and deploys to Azure App Service automatically.
+  </Card>
+</CardGroup>
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Flask 3.1.2 |
+| ORM | SQLAlchemy 2.0 |
+| Authentication | Flask-JWT-Extended 4.7.1 |
+| Database (prod) | Azure SQL Database |
+| Database (dev) | SQLite |
+| API Docs | Flasgger (Swagger/OpenAPI) |
+| Rate Limiting | Flask-Limiter 4.0 |
+| CORS | Flask-CORS 6.0 |
+| Testing | pytest (268 tests, >73% coverage) |
+| WSGI Server | Gunicorn 21.2 |
+| Hosting | Azure App Service (Linux) |
+
+## API overview
+
+All endpoints are prefixed with `/api`. Authentication uses Bearer tokens in the `Authorization` header.
+
+```
+Base URL: https://task-forge-gbd6h8gtg8hchve9.chilecentral-01.azurewebsites.net
+Auth:     Authorization: Bearer <access_token>
+```
+
+| Resource | Endpoints |
+|---|---|
+| Auth | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout` |
+| Tasks | `GET/POST /api/tasks`, `GET/PUT/DELETE /api/tasks/{id}`, `GET /api/tasks/statistics`, `GET /api/tasks/export` |
+| Tags | `GET/POST /api/tags`, `GET/PUT/DELETE /api/tags/{id}` |
+| Users | `GET /api/users`, `GET/PUT/DELETE /api/users/{id}`, `POST /api/users/{id}/activate` |
+| Health | `GET /api/health` |
+
+<Note>
+  All API responses follow a consistent envelope format: `{ "success": true, "data": {...} }` for success and `{ "success": false, "message": "..." }` for errors.
+</Note>

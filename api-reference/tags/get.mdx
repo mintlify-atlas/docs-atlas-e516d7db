@@ -1,0 +1,94 @@
+---
+title: 'Get tag'
+description: 'Retrieve a single tag by its ID.'
+---
+
+`GET /api/tags/{tag_id}`
+
+Returns the details of a single tag, including its associated task count.
+
+<Info>
+  Requires a valid Bearer access token. All authenticated users can access this endpoint.
+</Info>
+
+## Path parameters
+
+<ParamField path="tag_id" type="integer" required>
+  The unique identifier of the tag to retrieve.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="success" type="boolean" required>
+  Whether the request succeeded.
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  The tag object.
+  <Expandable title="properties">
+    <ResponseField name="id" type="integer">
+      Unique identifier for the tag.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Tag display name.
+    </ResponseField>
+    <ResponseField name="color" type="string">
+      Hex color code for the tag (e.g., `#FF5733`).
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Optional description of the tag.
+    </ResponseField>
+    <ResponseField name="task_count" type="integer">
+      Number of tasks currently associated with this tag.
+    </ResponseField>
+    <ResponseField name="created_at" type="string">
+      ISO 8601 timestamp when the tag was created.
+    </ResponseField>
+    <ResponseField name="updated_at" type="string">
+      ISO 8601 timestamp when the tag was last updated.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request GET \
+  --url 'https://api.taskforge.com/api/tags/1' \
+  --header 'Authorization: Bearer <access_token>'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Work",
+    "color": "#FF5733",
+    "description": "Work-related tasks",
+    "task_count": 12,
+    "created_at": "2024-01-01T00:00:00",
+    "updated_at": "2024-01-01T00:00:00"
+  }
+}
+```
+
+```json 404
+{
+  "success": false,
+  "error": "Etiqueta no encontrada"
+}
+```
+
+```json 401
+{
+  "success": false,
+  "error": "Token de acceso requerido"
+}
+```
+
+</ResponseExample>
